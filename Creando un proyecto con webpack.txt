@@ -1,0 +1,248 @@
+npm: node package magnament
+
+- npm init -y
+package.json: que dependencias son necesarias y otras especificaciones del proyecto
+aquí mismo se puede cambiar el nombre del proyecto
+	description: (lo que sea)
+	entrypoint: (se deja por defecto)
+	test command: (se puede definir un comando para realizar pruebas automaticas)
+	git repository: (se especifica el directorio de git)
+	keywords: (ayuda a que se pueda encontrar de manera sencilla en el repositorio de paquetes de node en caso de que se suba)
+	author: (el dueño del proyecto)
+	license: (ISC) (por defecto)
+	el package.json se confirma(se puede modificar después)
+
+webpack: Es un paquete de modulos de javascript
+
+Instalar webpack: https://webpack.js.org/guides/getting-started/
+- npm install webpack webpack-cli --save-dev
+
+Aparecerá la carpeta node_modules
+Añadir al archivo package.json:
+en scripts: "build": "webpack"
+con esto especificamos que cuándo ejecutemos el comando build dispara webpack con su configuración por defecto en el proyecto
+*busca la carpeta src y unificará los archivos de javascript para producción
+
+- npm run build
+
+aparecerá la carpeta dist(distribución) dentro de esta un archivo js en el que vendrá el código ofuscado main.js (todos los archivos de
+javascript en una única importación). Este comando se debe de ejecutar cada que se hagan cambios en la aplicación
+
+
+Crear un archivo de configuración de webpack:
+En raiz:
+- webpack.config.js		(se puede cambiar el nombre pero especificarlo en package.json)
+
+	rules: (decirle a webpack que haga con ciertos archivos dependiendo la ocasión)
+		test: (aplicar la regla al archivo si cumple con la expresión regular)
+		loader: (cargar si cumple la condición de test)
+	plugins:
+		template: que archivo quiero mover
+		filename: a dónde (se encontrará en dist)
+
+Para mover el archivo index.html cada que se ejecute "npm run build" a dist y que el main.js de dist se 
+importe en automatico en index.html, instalar dos paquetes:
+-npm i -D html-loader html-webpack-plugin
+
+-npm run build
+(si aparece problema didn't return html, en package.json poner "html-webpack-plugin": "^5.1.0")
+
+
+
+Instalar el servidor de desarrollo de webpack
+- npm i -D webpack-dev-server
+Para poder utilizarlo:
+en package.json
+	scripts:
+		"start": "webpack serve"	(aquí adentro se puede especificar el port --port=8081)
+Para levantar el servidor local
+- npm start
+
+
+
+TRABAJAR CON ESTILOS:
+
+Importar estilos de forma dinámica:(archivo css de manera independiente)
+
+*Importar cuándo se cargue un archivo js. 
+
+inyectar y minimizar el archivo css:
+- npm i -D css-loader style-loader
+
+en el archivo js que se usará importarlo
+- import '../css/funciones.css';
+
+configurarlo en el archivo de configuración de webpack:
+añadir regla
+{
+                test: /\.css$/,
+                use: [
+                    'style-loader',
+                    'css-loader'
+                ]
+            },
+
+
+
+Crear un archivo de estilos de forma global en la aplicación:
+
+crear un archivo independiente en dist para el archivo global de estilos
+- npm i -D mini-css-extract-plugin
+
+Crear la configuración de webpack:
+crear regla(ya que se maneja de manera diferente los archivos independientes css):
+- {
+                test: /styles\.css$/,
+                use: [
+                    MiniCssExtractPlugin.loader,
+                    'css-loader'
+                ]
+            },
+excluirlo de la regla de los archivos independiente para que no se ejecute:
+- {
+                test: /\.css$/,
+                exclude: /styles\.css$/,
+                use: [
+                    'style-loader',
+                    'css-loader'
+                ]
+            },
+crear la configuración del plugin
+- new  MiniCssExtractPlugin({
+            filename: '[name].css',		// con [name] le decimos a webpack que conserve el nombre del archivo
+            ignoreOrder: false
+        }),
+importar el archivo global de css al index.js
+- import './styles.css';
+(Cuándo vaya a producción)para ponerle un nombre especial al archivo para prevenir el cache(esto evita que el navegador 
+mantenga estos archivos en el cache), agregar:
+- new  MiniCssExtractPlugin({
+            filename: '[name].[contenthash].css',
+            ignoreOrder: false
+        }),
+minimizar los archivos css en producción(dist)
+- npm i -D optimize-css-assets-webpack-plugin
+crear la configuración en webpack:
+- optimization: {
+        minimizer: [ new OptimizeCssAssetsWebpackPlugin() ]
+    },
+
+para ver estos cambios (en producción):
+- npm run build
+
+
+TRABAJAR CON IMAGENES:
+añadirlo al html
+- <img src="./assets/webpack.png" alt="webpack-icon">
+crear la configuración de webpack (decirle que hacer con las imágenes)
+- npm i -D file-loader
+- npm i copy-webpack-plugin --save-dev
+regla para decirle que hacer con cualquier asset(archivos estaticos)
+- {
+                test: /\.(png|svg|jpg|gif)$/i,
+                loader: 'file-loader',
+                options: {
+                    esModule: false
+                }
+            }
+creamos la configuración del plugin
+- new CopyPlugin({
+            patterns: [
+                { from: 'src/assets', to: 'assets/' },
+            ],
+        })
+
+empaquetar:
+- npx webpack (que es lo mismo a npm run build)
+
+
+
+CREAR UN ARCHIVO DE PRODUCCIÓN DE LA APLICACIÓN
+
+crear archivo en raiz
+- webpack.prod.js
+añadir la configuración de la creación del archivo principal js de producción
+- output: {
+        filename: 'main.abc.js'
+    },
+especificar en package.json que cuándo se ejecuté el comando npm run build se ejecute este archivo
+- "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "webpack --config webpack.prod.js",
+    "start": "webpack serve"
+  },
+para probar
+- npm run build
+añadir un hash al nombre del archivo principal de js
+- output: {
+        filename: 'main.[contenthash].js'
+    },
+
+CONFIGURAR EL ARCHIVO DE PREPRODUCCIÓN DE LA APLICACIÓN
+
+especificar en package.json que cuándo se ejecuté el comando npm run build:dev se ejecute este archivo
+- "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "webpack --config webpack.prod.js",
+    "build:dev": "webpack --config webpack.config.js",
+    "start": "webpack serve"
+  },
+para probar
+- npm run build:dev
+
+
+
+INSTALAR BABEL
+(para hacer el código de javascript compatible con las versiones de otros navegadore web)
+
+- https://babeljs.io/setup#installation
+instalar
+- npm install --save-dev babel-loader @babel/core
+- npm install --save-dev @babel/preset-env
+crear la configuración en el archivo webpack de producción:
+añadir regla
+- {
+        test: /\.m?js$/,
+        exclude: /node_modules/,
+        use: {
+          loader: "babel-loader",
+          options: {
+            presets: ['@babel/preset-env']
+          }
+        }
+      }
+configurar babel:
+crear archivo de configuración de babel
+- babel.config.json en raiz
+instalar el packete para minimizar
+https://babeljs.io/docs/en/babel-preset-minify
+- npm install babel-preset-minify --save-dev
+añadir al archivo de configuración de babel:
+- {
+  "presets": ["minify"]
+}
+instalar paquete para que haga la minimización  -  https://github.com/webpack-contrib/babel-minify-webpack-plugin
+- npm install babel-minify-webpack-plugin --save-dev
+configurarlo en el archivo webpack de producción
+- const MinifyPlugin = require("babel-minify-webpack-plugin");
+	agregar el plugin
+	new MinifyPlugin()
+instalar paquete para que no use ecmascript superior al 5 (en caso de ya tenerlo configurarlo)  observación (al parecer no corrige que una const desaparesca)
+https://babeljs.io/docs/en/babel-preset-env
+en el archivo de configuración de babel
+{
+    "presets": ["@babel/preset-env", "minify"]
+}
+
+
+LIMPIAR EL DIRECTORIO DIST DE MANERA AUTOMÁTICA
+https://webpack.js.org/guides/output-management/		(Cleaning up the /dist folder)
+instalar el paquete
+- npm install --save-dev clean-webpack-plugin
+configurarlo en el archivo de configuración de producción de webpack
+- const { CleanWebpackPlugin } = require('clean-webpack-plugin');
+const path = require('path'); 
+	en output:
+path: path.resolve(__dirname, 'dist'),
+	en plugins:
+new CleanWebpackPlugin(),
